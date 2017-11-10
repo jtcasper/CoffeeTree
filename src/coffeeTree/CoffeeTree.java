@@ -1,6 +1,8 @@
 package coffeeTree;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 
 public class CoffeeTree {
 	
@@ -131,21 +133,24 @@ public class CoffeeTree {
 		/**
 		 * Recursively train and split the node
 		 * @param attributeList
+		 * @return 
 		 */
-		private void train(ArrayList<String> attributeList) {
+		private CoffeeTreeNode train(ArrayList<String> attributeList) {
 
 			CoffeeTreeNode[] bestSplit = null;
 			double bestScore = Float.MAX_VALUE;
 			String bestAttribute = null;
+			CoffeeTreeNode currentNode = this;
 			
 			// Recursion base cases
+			// These base cases imply we have reached a terminal CoffeeTreeNode
 			// No attributes remaining to classify any further
 			if (attributeList.size() == 0) {
-				return;
+				return new TerminalCoffeeTreeNode(currentNode, attributeList);
 			}
 			// All Observations of same class
 			ArrayList<String> classifications = new ArrayList<String>();
-			for (Observation o: this.getObservations()) {
+			for (Observation o: currentNode.getObservations()) {
 				if(!classifications.contains(o.getClassification())) {
 					classifications.add(o.getClassification());
 				}
@@ -154,7 +159,7 @@ public class CoffeeTree {
 				}
 			}
 			if (classifications.size() == 1) {
-				return;
+				return new TerminalCoffeeTreeNode(currentNode, attributeList);
 			} else
 
 
@@ -163,7 +168,7 @@ public class CoffeeTree {
 				if(attribute == null) {
 					break;
 				}
-				CoffeeTreeNode[] currentSplit = this.split(attribute);
+				CoffeeTreeNode[] currentSplit = currentNode.split(attribute);
 				double currentScore = metric.calculateScore(new Observation[][] {currentSplit[0].getObservations(), currentSplit[1].getObservations()}, new String[] {"0", "1"});
 				if (currentScore < bestScore) {
 					bestAttribute = attribute;
@@ -171,13 +176,15 @@ public class CoffeeTree {
 					bestSplit = currentSplit;
 				}
 			}
-			this.setAttribute(bestAttribute);
+			currentNode.setAttribute(bestAttribute);
 			attributeList.remove(bestAttribute);
-			this.setChildren(bestSplit);
-			this.getChildren()[0].train(attributeList);
-			this.getChildren()[1].train(attributeList);
+			//Recursively train children
+			bestSplit[0] = bestSplit[0].train(attributeList);
+			bestSplit[1] = bestSplit[1].train(attributeList);
+			currentNode.setChildren(bestSplit);
 			System.out.println(bestScore);
-
+			return currentNode;
+			
 		}
 		
 		public Observation[] getObservations() {
@@ -248,6 +255,43 @@ public class CoffeeTree {
 			}
 			return result;
 			
+		}
+		
+	}
+	
+	private class TerminalCoffeeTreeNode extends CoffeeTreeNode {
+		
+		/**
+		 * Classification that Observations who reach this node will be predicted to be
+		 */
+		private String classification;
+		
+		public TerminalCoffeeTreeNode(CoffeeTreeNode node, ArrayList<String> attributeList) {
+			super(new ArrayList<Observation>(Arrays.asList(node.getObservations())));
+			
+			String classification = null;
+			int highestOccurence = 0;
+			ArrayList<String> classificationList = new ArrayList<String>();
+			for (Observation o: node.getObservations()) {
+				classificationList.add(o.getClassification());
+			}
+			for (String c: classificationList) {
+				int occurences = Collections.frequency(classificationList, c);
+				if (occurences > highestOccurence) {
+					highestOccurence = occurences;
+					classification = c;
+				}
+			}
+			this.setClassification(classification);
+			
+		}
+
+		public String getClassification() {
+			return classification;
+		}
+
+		public void setClassification(String classification) {
+			this.classification = classification;
 		}
 		
 	}
