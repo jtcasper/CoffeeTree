@@ -1,11 +1,13 @@
 package coffeeTree;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 
 public class CoffeeTree {
 	
 	private CoffeeTreeNode root;
-	private String[] attributeList;
+	private ArrayList<String> attributeList;
 	//TODO allow user selection of metric
 	private AbstractMetric metric = new WeightedGiniMetric();
 	
@@ -28,7 +30,7 @@ public class CoffeeTree {
 		return this.root;
 	}
 	
-	private String[] generateAttributeList(ArrayList<Observation> observations) {
+	private ArrayList<String> generateAttributeList(ArrayList<Observation> observations) {
 		ArrayList<String> attributeList = new ArrayList<String>();
 		for (Observation o: observations) {
 			for (String attribute: o.getAttributes()) {
@@ -37,15 +39,14 @@ public class CoffeeTree {
 				}
 			}
 		}
-		String[] outAttributeList = new String[attributeList.size()];
-		return attributeList.toArray(outAttributeList);
+		return attributeList;
 	}
 	
-	public void setAttributeList(String[] attributeList) {
+	public void setAttributeList(ArrayList<String> attributeList) {
 		this.attributeList = attributeList;
 	}
 	
-	public String[] getAttributeList() {
+	public ArrayList<String> getAttributeList() {
 		return this.attributeList;
 	}
 	
@@ -55,15 +56,18 @@ public class CoffeeTree {
 		if (o instanceof CoffeeTree) {
 			CoffeeTree other = (CoffeeTree) o;
 			if (this.getRoot().equals(other.getRoot())) {
-				String[] attributeList = this.getAttributeList();
-				String[] otherAttributeList = other.getAttributeList();
-				if (attributeList.length == otherAttributeList.length) {
-					for (int i = 0; i < attributeList.length; i++) {
-						if(!attributeList[i].equals(otherAttributeList[i])) {
-							result = false;
-							break;
-						}
-					}
+				ArrayList<String> attributeList = this.getAttributeList();
+				ArrayList<String> otherAttributeList = other.getAttributeList();
+//				if (attributeList.length == otherAttributeList.length) {
+//					for (int i = 0; i < attributeList.length; i++) {
+//						if(!attributeList[i].equals(otherAttributeList[i])) {
+//							result = false;
+//							break;
+//						}
+//					}
+//				}
+				if(!attributeList.equals(otherAttributeList)) {
+					result = false;
 				}
 			} else {
 				result = false;
@@ -129,15 +133,42 @@ public class CoffeeTree {
 		/**
 		 * Recursively train and split the node
 		 * @param attributeList
+		 * @return 
 		 */
-		private void train(String[] attributeList) {
+		private CoffeeTreeNode train(ArrayList<String> attributeList) {
 
 			CoffeeTreeNode[] bestSplit = null;
 			double bestScore = Float.MAX_VALUE;
 			String bestAttribute = null;
+			CoffeeTreeNode currentNode = this;
+			
+			// Recursion base cases
+			// These base cases imply we have reached a terminal CoffeeTreeNode
+			// No attributes remaining to classify any further
+			if (attributeList.size() == 0) {
+				return new TerminalCoffeeTreeNode(currentNode, attributeList);
+			}
+			// All Observations of same class
+			ArrayList<String> classifications = new ArrayList<String>();
+			for (Observation o: currentNode.getObservations()) {
+				if(!classifications.contains(o.getClassification())) {
+					classifications.add(o.getClassification());
+				}
+				if (classifications.size() > 1) {
+					break;
+				}
+			}
+			if (classifications.size() == 1) {
+				return new TerminalCoffeeTreeNode(currentNode, attributeList);
+			} else
+
 
 			for(String attribute: attributeList) {
-				CoffeeTreeNode[] currentSplit = this.split(attribute);
+				// Avoid NPE in short attribute ArrayLists
+				if(attribute == null) {
+					break;
+				}
+				CoffeeTreeNode[] currentSplit = currentNode.split(attribute);
 				double currentScore = metric.calculateScore(new Observation[][] {currentSplit[0].getObservations(), currentSplit[1].getObservations()}, new String[] {"0", "1"});
 				if (currentScore < bestScore) {
 					bestAttribute = attribute;
@@ -145,10 +176,15 @@ public class CoffeeTree {
 					bestSplit = currentSplit;
 				}
 			}
-			this.setAttribute(bestAttribute);
-			this.setChildren(bestSplit);
+			currentNode.setAttribute(bestAttribute);
+			attributeList.remove(bestAttribute);
+			//Recursively train children
+			bestSplit[0] = bestSplit[0].train(attributeList);
+			bestSplit[1] = bestSplit[1].train(attributeList);
+			currentNode.setChildren(bestSplit);
 			System.out.println(bestScore);
-
+			return currentNode;
+			
 		}
 		
 		public Observation[] getObservations() {
@@ -219,6 +255,43 @@ public class CoffeeTree {
 			}
 			return result;
 			
+		}
+		
+	}
+	
+	private class TerminalCoffeeTreeNode extends CoffeeTreeNode {
+		
+		/**
+		 * Classification that Observations who reach this node will be predicted to be
+		 */
+		private String classification;
+		
+		public TerminalCoffeeTreeNode(CoffeeTreeNode node, ArrayList<String> attributeList) {
+			super(new ArrayList<Observation>(Arrays.asList(node.getObservations())));
+			
+			String classification = null;
+			int highestOccurence = 0;
+			ArrayList<String> classificationList = new ArrayList<String>();
+			for (Observation o: node.getObservations()) {
+				classificationList.add(o.getClassification());
+			}
+			for (String c: classificationList) {
+				int occurences = Collections.frequency(classificationList, c);
+				if (occurences > highestOccurence) {
+					highestOccurence = occurences;
+					classification = c;
+				}
+			}
+			this.setClassification(classification);
+			
+		}
+
+		public String getClassification() {
+			return classification;
+		}
+
+		public void setClassification(String classification) {
+			this.classification = classification;
 		}
 		
 	}
