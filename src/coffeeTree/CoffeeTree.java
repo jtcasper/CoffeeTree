@@ -21,24 +21,7 @@ public class CoffeeTree {
 	 * Trains the coffee tree model by splitting based on model's metric
 	 */
 	public void trainModel() {
-
-		CoffeeTreeNode[] bestSplit = null;
-		double bestScore = Float.MAX_VALUE;
-		String bestAttribute = null;
-		
-		for(String attribute: this.getAttributeList()) {
-			CoffeeTreeNode[] currentSplit = this.root.split(this.root, attribute);
-			double currentScore = metric.calculateScore(new Observation[][] {currentSplit[0].getObservations(), currentSplit[1].getObservations()}, new String[] {"0", "1"});
-			if (currentScore < bestScore) {
-				bestAttribute = attribute;
-				bestScore = currentScore;
-				bestSplit = currentSplit;
-			}
-		}
-		this.root.setAttribute(bestAttribute);
-		this.root.setChildren(bestSplit);
-		System.out.println(bestScore);
-		
+		this.root.train(this.getAttributeList());
 	}
 	
 	public CoffeeTreeNode getRoot() {
@@ -118,14 +101,13 @@ public class CoffeeTree {
 		
 		/**
 		 * Splits a node in to two nodes, those that have the attribute being selected and those that lack it
-		 * @param root Tree node being split
 		 * @param attribute Attribute to check for
 		 * @return Array of child nodes containing and lacking the observations with those attributes
 		 */
-		private CoffeeTreeNode[] split(CoffeeTreeNode root, String attribute) {
+		private CoffeeTreeNode[] split(String attribute) {
 			CoffeeTreeNode haveAttribute = new CoffeeTreeNode();
 			CoffeeTreeNode lackAttribute = new CoffeeTreeNode();
-			for(Observation o: root.getObservations()) {
+			for(Observation o: this.getObservations()) {
 				boolean contains = false;
 				for(String a: o.getAttributes()) {
 					if(a.equals(attribute)) {
@@ -144,7 +126,31 @@ public class CoffeeTree {
 			
 		}
 		
+		/**
+		 * Recursively train and split the node
+		 * @param attributeList
+		 */
+		private void train(String[] attributeList) {
 
+			CoffeeTreeNode[] bestSplit = null;
+			double bestScore = Float.MAX_VALUE;
+			String bestAttribute = null;
+
+			for(String attribute: attributeList) {
+				CoffeeTreeNode[] currentSplit = this.split(attribute);
+				double currentScore = metric.calculateScore(new Observation[][] {currentSplit[0].getObservations(), currentSplit[1].getObservations()}, new String[] {"0", "1"});
+				if (currentScore < bestScore) {
+					bestAttribute = attribute;
+					bestScore = currentScore;
+					bestSplit = currentSplit;
+				}
+			}
+			this.setAttribute(bestAttribute);
+			this.setChildren(bestSplit);
+			System.out.println(bestScore);
+
+		}
+		
 		public Observation[] getObservations() {
 			Observation[] obsArray = new Observation[this.observations.size()];
 			return this.observations.toArray(obsArray);
