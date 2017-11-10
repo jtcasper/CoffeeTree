@@ -11,7 +11,7 @@ public class WeightedGiniMetricTest {
 	
 	private static Observation class0Obs;
 	private static Observation class1Obs;
-	private WeightedGiniMetric metric = new WeightedGiniMetric();
+	private WeightedGiniMetric binaryGiniMetric = new WeightedGiniMetric(2);
 
 
 	@BeforeClass
@@ -36,10 +36,10 @@ public class WeightedGiniMetricTest {
 		Observation[][] weightedBestCase = { {class0Obs, class0Obs, class0Obs, class0Obs, class0Obs, class1Obs}, {class0Obs, class0Obs, class1Obs, class1Obs, class1Obs, class1Obs} };
 		Observation[][] multiWaySplit = { {class0Obs, class1Obs, class1Obs, class1Obs}, {class0Obs, class0Obs, class0Obs, class0Obs, class0Obs, class0Obs, class0Obs, class0Obs}, {class0Obs, class1Obs, class1Obs, class1Obs, class1Obs, class1Obs, class1Obs, class1Obs} };
 		
-		assertEquals(0.0, metric.calculateScore(bestCase, classes), 0.0001);
-		assertEquals(0.5, metric.calculateScore(worstCase, classes), 0.0001);
-		assertEquals(0.361, metric.calculateScore(weightedBestCase, classes), 0.1);
-		assertEquals(0.1625, metric.calculateScore(multiWaySplit, classes), 0.0001);
+		assertEquals(0.0, binaryGiniMetric.calculateScore(bestCase, classes), 0.0001);
+		assertEquals(0.5, binaryGiniMetric.calculateScore(worstCase, classes), 0.0001);
+		assertEquals(0.361, binaryGiniMetric.calculateScore(weightedBestCase, classes), 0.1);
+		assertEquals(0.1625, binaryGiniMetric.calculateScore(multiWaySplit, classes), 0.0001);
 		
 	}
 	
