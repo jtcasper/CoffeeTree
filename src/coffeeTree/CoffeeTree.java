@@ -6,6 +6,7 @@ public class CoffeeTree {
 	
 	private CoffeeTreeNode root;
 	private String[] attributeList;
+	//TODO allow user selection of metric
 	private AbstractMetric metric = new WeightedGiniMetric();
 	
 	public CoffeeTree(ArrayList<Observation> observations) {
@@ -15,6 +16,7 @@ public class CoffeeTree {
 		
 	}
 	
+	//TODO maybe change this to be a method of CoffeeTreeNode?
 	/**
 	 * Trains the coffee tree model by splitting based on model's metric
 	 */
@@ -123,8 +125,8 @@ public class CoffeeTree {
 		private CoffeeTreeNode[] split(CoffeeTreeNode root, String attribute) {
 			CoffeeTreeNode haveAttribute = new CoffeeTreeNode();
 			CoffeeTreeNode lackAttribute = new CoffeeTreeNode();
-			boolean contains = false;
 			for(Observation o: root.getObservations()) {
+				boolean contains = false;
 				for(String a: o.getAttributes()) {
 					if(a.equals(attribute)) {
 						contains = true;
@@ -174,11 +176,14 @@ public class CoffeeTree {
 			if (o instanceof CoffeeTreeNode) {
 				boolean attributesEqual = false;
 				boolean childrenEqual = false;
+				boolean observationsEqual = true;
 				CoffeeTreeNode other = (CoffeeTreeNode) o;
 				String attribute = this.getAttribute();
 				String otherAttribute = other.getAttribute();
 				CoffeeTreeNode[] children = this.getChildren();
 				CoffeeTreeNode[] otherChildren = other.getChildren();
+				Observation[] observations = this.getObservations();
+				Observation[] otherObservations = other.getObservations();
 				if ( attribute != null && otherAttribute != null ) {
 					if ( attribute.equals(otherAttribute) ) {
 						attributesEqual = true;
@@ -194,7 +199,17 @@ public class CoffeeTree {
 						childrenEqual = true;
 					}
 				}
-				result = attributesEqual && childrenEqual;
+				if (observations.length == otherObservations.length) {
+					for (int i = 0; i < observations.length; i++) {
+						if(!observations[i].equals(otherObservations[i])) {
+							observationsEqual = false;
+							break;
+						}
+					}
+				} else {
+					observationsEqual = false;
+				}
+				result = attributesEqual && childrenEqual && observationsEqual;
 			}
 			return result;
 			
