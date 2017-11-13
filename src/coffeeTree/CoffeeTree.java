@@ -45,6 +45,14 @@ public class CoffeeTree {
 		this.root.train(this.getAttributeList(), 1, this.getMaxDepth(), this.getMinObservations(), this.getDeltaGain());
 	}
 	
+	/**
+	 * Recursively descend through the tree using attributes until a terminal node is reached
+	 * @param observation The Observation to be classified using a trained tree
+	 */
+	public void predictObservation(Observation observation) {
+		this.root.predict(observation);
+	}
+	
 	public CoffeeTreeNode getRoot() {
 		return this.root;
 	}
@@ -265,6 +273,37 @@ public class CoffeeTree {
 			
 		}
 		
+		/**
+		 * Recursively descend through the tree using attributes until a terminal node is reached
+		 * @param observation The Observation to be classified using a trained tree
+		 */
+		public void predict(Observation observation) {
+			CoffeeTreeNode currentNode = this;
+			// Base case: a leaf is reached
+			if (this instanceof TerminalCoffeeTreeNode) {
+				observation.setClassification(((TerminalCoffeeTreeNode) currentNode).getClassification());
+			}
+			else {
+				String attribute = currentNode.getAttribute();
+				boolean contains = false;
+				for(String a: observation.getAttributes()) {
+					if (attribute.equals(a)) {
+						contains = true;
+						break;
+					}
+				}
+				if (contains) {
+					// Left child is contains = true from split
+					currentNode.getChildren()[0].predict(observation);
+				} else {
+					// Right child is contains = false from split
+					currentNode.getChildren()[1].predict(observation);
+				}
+			}
+			
+		}
+
+		
 		public Observation[] getObservations() {
 			Observation[] obsArray = new Observation[this.observations.size()];
 			return this.observations.toArray(obsArray);
@@ -357,7 +396,10 @@ public class CoffeeTree {
 						
 			String classification = null;
 			int highestOccurence = 0;
-			ArrayList<String> classificationList = CoffeeTree.classificationList;
+			ArrayList<String> classificationList = new ArrayList<String>();
+			for (Observation o: this.getObservations()) {
+				classificationList.add(o.getClassification());
+			}
 			for (String c: classificationList) {
 				int occurences = Collections.frequency(classificationList, c);
 				if (occurences > highestOccurence) {
