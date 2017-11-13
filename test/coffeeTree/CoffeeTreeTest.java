@@ -79,6 +79,28 @@ public class CoffeeTreeTest {
 		
 		System.out.println(tree.getRoot());
 	}
+	
+	@Test
+	public void testPredictObservation() {
+		CoffeeTree tree3d = new CoffeeTree(ternaryClassObservations, ternaryClassGiniMetric);
+		tree3d.trainModel();
+		Observation unclassifiedObservation = new Observation(new String[]{"useless"});
+		Observation unclassifiedObservation2 = new Observation(new String[]{"less useless"});
+		Observation unclassifiedObservation3 = new Observation(new String[]{"least useless"});
+		tree3d.predictObservation(unclassifiedObservation);
+		//Test initial split
+		assertNotNull(unclassifiedObservation.getClassification());
+		assertEquals("0", unclassifiedObservation.getClassification());
+		//Test secondary split
+		tree3d.predictObservation(unclassifiedObservation2);
+		assertNotNull(unclassifiedObservation2.getClassification());
+		assertEquals("1", unclassifiedObservation2.getClassification());
+		//Test right side of secondary split
+		tree3d.predictObservation(unclassifiedObservation3);
+		assertNotNull(unclassifiedObservation3.getClassification());
+		assertEquals("2", unclassifiedObservation3.getClassification());
+		
+	}
 
 	@Test
 	public void testGetRoot() {
