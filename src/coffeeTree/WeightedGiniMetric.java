@@ -3,6 +3,22 @@ package coffeeTree;
 public class WeightedGiniMetric extends AbstractMetric {
 	
 	/**
+	 * Constructor that sets maxImpurity required by AbstractMetric
+	 * @param maxImpurity The maximum Gini impurity for the training dataset (defined as 1-1/numberOfClasses)
+	 */
+	private WeightedGiniMetric(double maxImpurity) {
+		super(maxImpurity);
+	}
+	
+	/**
+	 * Constructor that determines the maxImpurity allowed for the WeightedGiniMetric for a training dataset.
+	 * @param numberOfClasses The number of classifications in the training dataset.
+	 */
+	public WeightedGiniMetric(int numberOfClasses) {
+		this(1 - 1.0/numberOfClasses);
+	}
+
+	/**
 	 * Implementation of superclass calculateScore that computes the weighted GINI impurity.
 	 * @param groups 2D array of Observations of data
 	 * @param classes The set of classes that data can be classified to.

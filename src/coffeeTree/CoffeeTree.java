@@ -8,13 +8,32 @@ public class CoffeeTree {
 	
 	private CoffeeTreeNode root;
 	private ArrayList<String> attributeList;
-	//TODO allow user selection of metric
-	private AbstractMetric metric = new WeightedGiniMetric();
+	private static ArrayList<String> classificationList;
+	private int maxDepth;
+	private int minObservations;
+	private double deltaGain;
 	
-	public CoffeeTree(ArrayList<Observation> observations) {
+	private final static int DEFAULT_MAX_DEPTH = Integer.MAX_VALUE;
+	private final static int DEFAULT_MIN_OBSERVATIONS = 0;
+	private final static double DEFAULT_DELTA_GAIN = 0.0;
+	//TODO allow user selection of metric
+	private AbstractMetric metric;
+	
+	public CoffeeTree(ArrayList<Observation> observations, AbstractMetric metric, int maxDepth, int minObservations, double deltaGain) {
 		
+		this.metric = metric;
 		this.root = new CoffeeTreeNode(observations);
 		this.setAttributeList(generateAttributeList(observations));
+		this.setClassificationList(generateClassificationList(observations));
+		this.setMaxDepth(maxDepth);
+		this.setMinObservations(minObservations);
+		this.setDeltaGain(deltaGain);
+		
+	}
+
+	public CoffeeTree(ArrayList<Observation> observations, AbstractMetric metric) {
+		
+		this(observations, metric, DEFAULT_MAX_DEPTH, DEFAULT_MIN_OBSERVATIONS, DEFAULT_DELTA_GAIN);
 		
 	}
 	
@@ -23,7 +42,15 @@ public class CoffeeTree {
 	 * Trains the coffee tree model by splitting based on model's metric
 	 */
 	public void trainModel() {
-		this.root.train(this.getAttributeList());
+		this.root.train(this.getAttributeList(), 1, this.getMaxDepth(), this.getMinObservations(), this.getDeltaGain());
+	}
+	
+	/**
+	 * Recursively descend through the tree using attributes until a terminal node is reached
+	 * @param observation The Observation to be classified using a trained tree
+	 */
+	public void predictObservation(Observation observation) {
+		this.root.predict(observation);
 	}
 	
 	public CoffeeTreeNode getRoot() {
@@ -50,6 +77,49 @@ public class CoffeeTree {
 		return this.attributeList;
 	}
 	
+	private ArrayList<String> generateClassificationList(ArrayList<Observation> observations) {
+		ArrayList<String> classificationList = new ArrayList<String>();
+		for (Observation o: observations) {
+			if (!classificationList.contains(o.getClassification())) {
+				classificationList.add(o.getClassification());
+			}
+		}
+		return classificationList;
+	}
+	
+	
+	private void setClassificationList(ArrayList<String> classificationList) {
+		CoffeeTree.classificationList = classificationList;
+	}
+	
+	public ArrayList<String> getClassificationList() {
+		return classificationList;
+	}
+
+	public int getMaxDepth() {
+		return maxDepth;
+	}
+
+	public void setMaxDepth(int maxDepth) {
+		this.maxDepth = maxDepth;
+	}
+
+	public int getMinObservations() {
+		return minObservations;
+	}
+
+	public void setMinObservations(int minObservations) {
+		this.minObservations = minObservations;
+	}
+
+	public double getDeltaGain() {
+		return deltaGain;
+	}
+
+	public void setDeltaGain(double deltaGain) {
+		this.deltaGain = deltaGain;
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		boolean result = true;
@@ -88,15 +158,17 @@ public class CoffeeTree {
 		private ArrayList<Observation> observations;
 		private CoffeeTreeNode[] children;
 		private String attribute;
+		private double impurity;
 		
-		public CoffeeTreeNode(ArrayList<Observation> observations, CoffeeTreeNode[] children, String attribute) {
+		public CoffeeTreeNode(ArrayList<Observation> observations, CoffeeTreeNode[] children, String attribute, double impurity) {
 			this.observations = observations;
 			this.children = children;
 			this.setAttribute(attribute);
+			this.setImpurity(impurity);
 		}
 		
 		public CoffeeTreeNode(ArrayList<Observation> observations) {
-			this(observations, null, null);
+			this(observations, null, null, metric.MAX_IMPURITY);
 		}
 		
 		public CoffeeTreeNode() {
@@ -132,10 +204,14 @@ public class CoffeeTree {
 		
 		/**
 		 * Recursively train and split the node
-		 * @param attributeList
+		 * @param attributeList The list of all possible attributes available that this node can use to train itself
+		 * @param depth The current depth of a branch
+		 * @param maxDepth The maximum depth a branch can reach before being a terminal node
+		 * @param minObservations The minimum number of Observations a node must have to continue splitting
+		 * @param deltaGain The gain in impurity required to accept a split, used to reduce overfitting
 		 * @return 
 		 */
-		private CoffeeTreeNode train(ArrayList<String> attributeList) {
+		private CoffeeTreeNode train(ArrayList<String> attributeList, int depth, int maxDepth, int minObservations, double deltaGain) {
 
 			CoffeeTreeNode[] bestSplit = null;
 			double bestScore = Float.MAX_VALUE;
@@ -147,20 +223,25 @@ public class CoffeeTree {
 			// No attributes remaining to classify any further
 			if (attributeList.size() == 0) {
 				return new TerminalCoffeeTreeNode(currentNode, attributeList);
-			}
-			// All Observations of same class
-			ArrayList<String> classifications = new ArrayList<String>();
-			for (Observation o: currentNode.getObservations()) {
-				if(!classifications.contains(o.getClassification())) {
-					classifications.add(o.getClassification());
-				}
-				if (classifications.size() > 1) {
-					break;
-				}
-			}
-			if (classifications.size() == 1) {
+			} else if (depth > maxDepth) {
 				return new TerminalCoffeeTreeNode(currentNode, attributeList);
-			} else
+			} else if (currentNode.getObservations().length < minObservations) {
+				return new TerminalCoffeeTreeNode(currentNode, attributeList);
+			} else {
+				// All Observations of same class
+				ArrayList<String> classifications = new ArrayList<String>();
+				for (Observation o: currentNode.getObservations()) {
+					if(!classifications.contains(o.getClassification())) {
+						classifications.add(o.getClassification());
+					}
+					if (classifications.size() > 1) {
+						break;
+					}
+				}
+				if (classifications.size() == 1) {
+					return new TerminalCoffeeTreeNode(currentNode, attributeList);
+				} 
+			}
 
 
 			for(String attribute: attributeList) {
@@ -176,16 +257,52 @@ public class CoffeeTree {
 					bestSplit = currentSplit;
 				}
 			}
+			// If there is not a sufficient improvement in impurity, stop splitting this node
+			if ( Math.abs(currentNode.getImpurity() - bestScore) < deltaGain ) {
+				return new TerminalCoffeeTreeNode(currentNode, attributeList);
+			}
 			currentNode.setAttribute(bestAttribute);
 			attributeList.remove(bestAttribute);
+			currentNode.setImpurity(bestScore);
 			//Recursively train children
-			bestSplit[0] = bestSplit[0].train(attributeList);
-			bestSplit[1] = bestSplit[1].train(attributeList);
+			bestSplit[0] = bestSplit[0].train(attributeList, depth + 1, maxDepth, minObservations, deltaGain);
+			bestSplit[1] = bestSplit[1].train(attributeList, depth + 1, maxDepth, minObservations, deltaGain);
 			currentNode.setChildren(bestSplit);
 			System.out.println(bestScore);
 			return currentNode;
 			
 		}
+		
+		/**
+		 * Recursively descend through the tree using attributes until a terminal node is reached
+		 * @param observation The Observation to be classified using a trained tree
+		 */
+		public void predict(Observation observation) {
+			CoffeeTreeNode currentNode = this;
+			// Base case: a leaf is reached
+			if (this instanceof TerminalCoffeeTreeNode) {
+				observation.setClassification(((TerminalCoffeeTreeNode) currentNode).getClassification());
+			}
+			else {
+				String attribute = currentNode.getAttribute();
+				boolean contains = false;
+				for(String a: observation.getAttributes()) {
+					if (attribute.equals(a)) {
+						contains = true;
+						break;
+					}
+				}
+				if (contains) {
+					// Left child is contains = true from split
+					currentNode.getChildren()[0].predict(observation);
+				} else {
+					// Right child is contains = false from split
+					currentNode.getChildren()[1].predict(observation);
+				}
+			}
+			
+		}
+
 		
 		public Observation[] getObservations() {
 			Observation[] obsArray = new Observation[this.observations.size()];
@@ -210,6 +327,14 @@ public class CoffeeTree {
 
 		public void setAttribute(String attribute) {
 			this.attribute = attribute;
+		}
+
+		public double getImpurity() {
+			return impurity;
+		}
+
+		public void setImpurity(double impurity) {
+			this.impurity = impurity;
 		}
 
 		@Override
@@ -268,11 +393,11 @@ public class CoffeeTree {
 		
 		public TerminalCoffeeTreeNode(CoffeeTreeNode node, ArrayList<String> attributeList) {
 			super(new ArrayList<Observation>(Arrays.asList(node.getObservations())));
-			
+						
 			String classification = null;
 			int highestOccurence = 0;
 			ArrayList<String> classificationList = new ArrayList<String>();
-			for (Observation o: node.getObservations()) {
+			for (Observation o: this.getObservations()) {
 				classificationList.add(o.getClassification());
 			}
 			for (String c: classificationList) {
