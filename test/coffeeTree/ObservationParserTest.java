@@ -68,10 +68,10 @@ public class ObservationParserTest {
 		}
 		
 		assertNotNull(classifiedObservations);
-		assertTrue(classifiedObservations.equals(testClassifiedObs));
+		assertEquals(classifiedObservations, testClassifiedObs);
 		
 		assertNotNull(unclassifiedObservations);
-		assertTrue(unclassifiedObservations.equals(testUnclassifiedObs));
+		assertEquals(unclassifiedObservations, testUnclassifiedObs);
 		
 		
 	}

@@ -67,8 +67,8 @@ public class CoffeeTreeTest {
 		CoffeeTree tree2 = new CoffeeTree(binaryClassObservations, binaryClassGiniMetric);
 		CoffeeTree tree3d = new CoffeeTree(ternaryClassObservations, ternaryClassGiniMetric);
 		
-		assertTrue(tree.equals(tree2));
-		assertFalse(tree.equals(tree3d));
+		assertEquals(tree, tree2);
+		assertNotEquals(tree, tree3d);
 		
 		tree.trainModel();
 		assertFalse(tree.equals(tree2));
@@ -108,7 +108,7 @@ public class CoffeeTreeTest {
 		CoffeeTree tree2 = new CoffeeTree(binaryClassObservations, binaryClassGiniMetric);
 		assertNotNull(tree.getRoot());
 		assertNotNull(tree2.getRoot());
-		assertTrue(tree.equals(tree2));
+		assertEquals(tree, tree2);
 		
 	}
 
