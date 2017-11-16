@@ -1,5 +1,7 @@
 package coffeeTree;
 
+import java.util.ArrayList;
+
 /**
  * An Observation is a Row of data from a dataset. It will have attributes
  * and potentially contain a Classification (for training)
@@ -8,19 +10,19 @@ package coffeeTree;
  */
 public class Observation {
 	
-	private String[] attributes;
+	private ArrayList<Attribute> attributes;
 	private String classification;
 	
-	public Observation(String[] attributes, String classification) {
+	public Observation(ArrayList<Attribute> attributes, String classification) {
 		this.attributes = attributes;
 		this.classification = classification;
 	}
 	
-	public Observation(String[] attributes) {
+	public Observation(ArrayList<Attribute> attributes) {
 		this(attributes, null);
 	}
 	
-	public String[] getAttributes() {
+	public ArrayList<Attribute> getAttributes() {
 		return this.attributes;
 	}
 	
@@ -41,14 +43,8 @@ public class Observation {
 			Observation other = (Observation) o;
 			if((this.getClassification() == null && other.getClassification() == null) || this.getClassification().equals(other.getClassification())) {
 				//TODO This can be cleaned up heavily once Attribute class implemented
-				if (this.getAttributes().length == other.getAttributes().length) {
-					for (int i = 0; i < this.getAttributes().length; i++) {
-						if (this.getAttributes()[i].equals(other.getAttributes()[i])) {
-							result = true;
-						} else {
-							result = false;
-						}
-					}
+				if (this.getAttributes().equals(other.getAttributes())) {
+					result = true;
 				}
 			}
 			
