@@ -41,7 +41,7 @@ public class Observation {
 		if (o instanceof Observation) {
 			
 			Observation other = (Observation) o;
-			if((this.getClassification() == null && other.getClassification() == null) || this.getClassification().equals(other.getClassification())) {
+			if((this.getClassification() == null && other.getClassification() == null) || (this.getClassification() != null && this.getClassification().equals(other.getClassification()))) {
 				//TODO This can be cleaned up heavily once Attribute class implemented
 				if (this.getAttributes().equals(other.getAttributes())) {
 					result = true;

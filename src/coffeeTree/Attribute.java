@@ -60,13 +60,13 @@ public class Attribute {
 			if(attributeName == null && otherAttributeName == null) {
 				result = true;
 			} else {
-				if (attributeName.equals(otherAttributeName)) {
+				if (attributeName != null && attributeName.equals(otherAttributeName)) {
 					String attributeValue = this.getAttributeValue();
 					String otherAttributeValue = other.getAttributeValue();
 					if (attributeValue == null && otherAttributeValue == null) {
 						result = true;
 					} else {
-						if (attributeValue.equals(other.attributeValue)) {
+						if (attributeValue != null && attributeValue.equals(other.attributeValue)) {
 							result = true;
 						}
 					}
