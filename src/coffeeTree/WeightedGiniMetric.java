@@ -1,5 +1,7 @@
 package coffeeTree;
 
+import java.util.ArrayList;
+
 public class WeightedGiniMetric extends AbstractMetric {
 	
 	/**
@@ -24,7 +26,7 @@ public class WeightedGiniMetric extends AbstractMetric {
 	 * @param classes The set of classes that data can be classified to.
 	 * @return Weighted GINI impurity
 	 */
-	public double calculateScore(Observation[][] groups, String[] classes) {
+	public double calculateScore(ArrayList<Observation[]> groups, ArrayList<String> classes) {
 		int totalSize = 0;
 		double giniScore = 0;
 		
@@ -48,7 +50,7 @@ public class WeightedGiniMetric extends AbstractMetric {
 	 * @param classes Classifications in the model
 	 * @return Gini
 	 */
-	private double calculateGini(Observation[] group, String[] classes) {
+	private double calculateGini(Observation[] group, ArrayList<String> classes) {
 		double giniScore = 1;
 		
 		int size = group.length;

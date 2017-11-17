@@ -1,5 +1,7 @@
 package coffeeTree;
 
+import java.util.ArrayList;
+
 public abstract class AbstractMetric {
 	
 	/**
@@ -15,6 +17,6 @@ public abstract class AbstractMetric {
 	 * To be implemented in sub-classes. Measures the impurity of a node split in the decision tree.
 	 * @return Impurity of a node split
 	 */
-	public abstract double calculateScore(Observation[][] groups, String[] classes);
+	public abstract double calculateScore(ArrayList<Observation[]> groups, ArrayList<String> classificationList);
 	
 }

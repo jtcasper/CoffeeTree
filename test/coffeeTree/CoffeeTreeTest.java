@@ -63,10 +63,13 @@ public class CoffeeTreeTest {
 	}
 
 	@Test
-	public void testTrainModel() {
+	public void testTrainModelBinary() {
 		CoffeeTree tree = new CoffeeTree(binaryClassObservations, binaryClassGiniMetric);
+		tree.setBinarySplit(true);
 		CoffeeTree tree2 = new CoffeeTree(binaryClassObservations, binaryClassGiniMetric);
+		tree2.setBinarySplit(true);
 		CoffeeTree tree3d = new CoffeeTree(ternaryClassObservations, ternaryClassGiniMetric);
+		tree3d.setBinarySplit(true);
 		
 		assertEquals(tree, tree2);
 		assertNotEquals(tree, tree3d);
@@ -82,7 +85,51 @@ public class CoffeeTreeTest {
 	}
 	
 	@Test
-	public void testPredictObservation() {
+	public void testPredictObservationBinary() {
+		CoffeeTree tree3d = new CoffeeTree(ternaryClassObservations, ternaryClassGiniMetric);
+		tree3d.setBinarySplit(true);
+		tree3d.trainModel();
+		Observation unclassifiedObservation = new Observation(new ArrayList<Attribute>(Arrays.asList(new Attribute[] {new Attribute("useless")})));
+		Observation unclassifiedObservation2 = new Observation(new ArrayList<Attribute>(Arrays.asList(new Attribute[] {new Attribute("less useless")})));
+		Observation unclassifiedObservation3 = new Observation(new ArrayList<Attribute>(Arrays.asList(new Attribute[] {new Attribute("least useless")})));
+		tree3d.predictObservation(unclassifiedObservation);
+		//Test initial split
+		assertNotNull(unclassifiedObservation.getClassification());
+		assertEquals("0", unclassifiedObservation.getClassification());
+		//Test secondary split
+		tree3d.predictObservation(unclassifiedObservation2);
+		assertNotNull(unclassifiedObservation2.getClassification());
+		assertEquals("1", unclassifiedObservation2.getClassification());
+		//Test right side of secondary split
+		tree3d.predictObservation(unclassifiedObservation3);
+		assertNotNull(unclassifiedObservation3.getClassification());
+		assertEquals("2", unclassifiedObservation3.getClassification());
+		
+	}
+	
+	@Test
+	public void testTrainModelMultiway() {
+		
+		CoffeeTree tree = new CoffeeTree(binaryClassObservations, binaryClassGiniMetric);
+		CoffeeTree tree2 = new CoffeeTree(binaryClassObservations, binaryClassGiniMetric);
+		CoffeeTree tree3d = new CoffeeTree(ternaryClassObservations, ternaryClassGiniMetric);
+		
+		assertEquals(tree, tree2);
+		assertNotEquals(tree, tree3d);
+		
+		tree.trainModel();
+		assertFalse(tree.equals(tree2));
+		assertFalse(tree.equals(tree3d));
+		tree2.trainModel();
+		assertTrue(tree.equals(tree2));
+		tree3d.trainModel();
+
+		
+	}
+	
+	@Test
+	public void testPredictObservationMultiway() {
+		
 		CoffeeTree tree3d = new CoffeeTree(ternaryClassObservations, ternaryClassGiniMetric);
 		tree3d.trainModel();
 		Observation unclassifiedObservation = new Observation(new ArrayList<Attribute>(Arrays.asList(new Attribute[] {new Attribute("useless")})));
