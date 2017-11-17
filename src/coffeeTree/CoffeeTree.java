@@ -4,14 +4,21 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 
+/**
+ * A multiway decision tree for classifying and predicting Observations from a dataset.
+ * The CoffeeTree can be trained using multiway or binary splits,
+ * but binary splits must explicitly invoke setBinarySplit before training to be used.
+ * @author Jacob Casper
+ */
 public class CoffeeTree {
 	
 	private CoffeeTreeNode root;
-	private ArrayList<String> attributeList;
+	private ArrayList<Attribute> attributeList;
 	private static ArrayList<String> classificationList;
 	private int maxDepth;
 	private int minObservations;
 	private double deltaGain;
+	private boolean binarySplit = false;
 	
 	private final static int DEFAULT_MAX_DEPTH = Integer.MAX_VALUE;
 	private final static int DEFAULT_MIN_OBSERVATIONS = 0;
@@ -42,7 +49,7 @@ public class CoffeeTree {
 	 * Trains the coffee tree model by splitting based on model's metric
 	 */
 	public void trainModel() {
-		this.root.train(this.getAttributeList(), 1, this.getMaxDepth(), this.getMinObservations(), this.getDeltaGain());
+		this.root.train(this.getAttributeList(), 1, this.isBinarySplit(), this.getMaxDepth(), this.getMinObservations(), this.getDeltaGain());
 	}
 	
 	/**
@@ -50,17 +57,17 @@ public class CoffeeTree {
 	 * @param observation The Observation to be classified using a trained tree
 	 */
 	public void predictObservation(Observation observation) {
-		this.root.predict(observation);
+		this.root.predict(observation, this.isBinarySplit());
 	}
 	
 	public CoffeeTreeNode getRoot() {
 		return this.root;
 	}
 	
-	private ArrayList<String> generateAttributeList(ArrayList<Observation> observations) {
-		ArrayList<String> attributeList = new ArrayList<String>();
+	private ArrayList<Attribute> generateAttributeList(ArrayList<Observation> observations) {
+		ArrayList<Attribute> attributeList = new ArrayList<Attribute>();
 		for (Observation o: observations) {
-			for (String attribute: o.getAttributes()) {
+			for (Attribute attribute: o.getAttributes()) {
 				if (!attributeList.contains(attribute)) {
 					attributeList.add(attribute);
 				}
@@ -69,11 +76,11 @@ public class CoffeeTree {
 		return attributeList;
 	}
 	
-	public void setAttributeList(ArrayList<String> attributeList) {
+	public void setAttributeList(ArrayList<Attribute> attributeList) {
 		this.attributeList = attributeList;
 	}
 	
-	public ArrayList<String> getAttributeList() {
+	public ArrayList<Attribute> getAttributeList() {
 		return this.attributeList;
 	}
 	
@@ -120,22 +127,26 @@ public class CoffeeTree {
 		this.deltaGain = deltaGain;
 	}
 
+	public boolean isBinarySplit() {
+		return binarySplit;
+	}
+
+	/**
+	 * Must be explicitly called to set stricter, binary, split behavior on Attributes.
+	 * @param binarySplit
+	 */
+	public void setBinarySplit(boolean binarySplit) {
+		this.binarySplit = binarySplit;
+	}
+
 	@Override
 	public boolean equals(Object o) {
 		boolean result = true;
 		if (o instanceof CoffeeTree) {
 			CoffeeTree other = (CoffeeTree) o;
 			if (this.getRoot().equals(other.getRoot())) {
-				ArrayList<String> attributeList = this.getAttributeList();
-				ArrayList<String> otherAttributeList = other.getAttributeList();
-//				if (attributeList.length == otherAttributeList.length) {
-//					for (int i = 0; i < attributeList.length; i++) {
-//						if(!attributeList[i].equals(otherAttributeList[i])) {
-//							result = false;
-//							break;
-//						}
-//					}
-//				}
+				ArrayList<Attribute> attributeList = this.getAttributeList();
+				ArrayList<Attribute> otherAttributeList = other.getAttributeList();
 				if(!attributeList.equals(otherAttributeList)) {
 					result = false;
 				}
@@ -157,10 +168,10 @@ public class CoffeeTree {
 		
 		private ArrayList<Observation> observations;
 		private CoffeeTreeNode[] children;
-		private String attribute;
+		private Attribute attribute;
 		private double impurity;
 		
-		public CoffeeTreeNode(ArrayList<Observation> observations, CoffeeTreeNode[] children, String attribute, double impurity) {
+		public CoffeeTreeNode(ArrayList<Observation> observations, CoffeeTreeNode[] children, Attribute attribute, double impurity) {
 			this.observations = observations;
 			this.children = children;
 			this.setAttribute(attribute);
@@ -178,27 +189,40 @@ public class CoffeeTree {
 		/**
 		 * Splits a node in to two nodes, those that have the attribute being selected and those that lack it
 		 * @param attribute Attribute to check for
+		 * @param binarySplit Split into binary decision tree
 		 * @return Array of child nodes containing and lacking the observations with those attributes
 		 */
-		private CoffeeTreeNode[] split(String attribute) {
+		private CoffeeTreeNode[] split(Attribute attribute, boolean binarySplit) {
 			CoffeeTreeNode haveAttribute = new CoffeeTreeNode();
+			CoffeeTreeNode softHaveAttribute = new CoffeeTreeNode();
 			CoffeeTreeNode lackAttribute = new CoffeeTreeNode();
 			for(Observation o: this.getObservations()) {
 				boolean contains = false;
-				for(String a: o.getAttributes()) {
+				boolean softContains = false;
+				for(Attribute a: o.getAttributes()) {
 					if(a.equals(attribute)) {
 						contains = true;
+						break;
+					} else if (!binarySplit && a.softEquals(attribute)) {
+						softContains = true;
 						break;
 					}
 				}
 				if (contains) {
 					haveAttribute.addObservation(o);
+				} else if (softContains) {
+					softHaveAttribute.addObservation(o);
 				} else {
 					lackAttribute.addObservation(o);
 				}
 			}
-			CoffeeTreeNode[] children = {haveAttribute, lackAttribute};
-			return children;
+			if(binarySplit) {
+				CoffeeTreeNode[] children = {haveAttribute, lackAttribute};
+				return children;
+			} else {
+				CoffeeTreeNode[] children = {haveAttribute, softHaveAttribute, lackAttribute};
+				return children;
+			}
 			
 		}
 		
@@ -206,16 +230,17 @@ public class CoffeeTree {
 		 * Recursively train and split the node
 		 * @param attributeList The list of all possible attributes available that this node can use to train itself
 		 * @param depth The current depth of a branch
+		 * @param binarySplit Whether or not the tree should be trained using a binary split
 		 * @param maxDepth The maximum depth a branch can reach before being a terminal node
 		 * @param minObservations The minimum number of Observations a node must have to continue splitting
 		 * @param deltaGain The gain in impurity required to accept a split, used to reduce overfitting
 		 * @return 
 		 */
-		private CoffeeTreeNode train(ArrayList<String> attributeList, int depth, int maxDepth, int minObservations, double deltaGain) {
+		private CoffeeTreeNode train(ArrayList<Attribute> attributeList, int depth, boolean binarySplit, int maxDepth, int minObservations, double deltaGain) {
 
 			CoffeeTreeNode[] bestSplit = null;
 			double bestScore = Float.MAX_VALUE;
-			String bestAttribute = null;
+			Attribute bestAttribute = null;
 			CoffeeTreeNode currentNode = this;
 			
 			// Recursion base cases
@@ -226,6 +251,8 @@ public class CoffeeTree {
 			} else if (depth > maxDepth) {
 				return new TerminalCoffeeTreeNode(currentNode, attributeList);
 			} else if (currentNode.getObservations().length < minObservations) {
+				return new TerminalCoffeeTreeNode(currentNode, attributeList);
+			} else if (currentNode.getObservations().length == 0) {
 				return new TerminalCoffeeTreeNode(currentNode, attributeList);
 			} else {
 				// All Observations of same class
@@ -244,13 +271,17 @@ public class CoffeeTree {
 			}
 
 
-			for(String attribute: attributeList) {
+			for(Attribute attribute: attributeList) {
 				// Avoid NPE in short attribute ArrayLists
 				if(attribute == null) {
 					break;
 				}
-				CoffeeTreeNode[] currentSplit = currentNode.split(attribute);
-				double currentScore = metric.calculateScore(new Observation[][] {currentSplit[0].getObservations(), currentSplit[1].getObservations()}, new String[] {"0", "1"});
+				CoffeeTreeNode[] currentSplit = currentNode.split(attribute, binarySplit);
+				ArrayList<Observation[]> splitObservations = new ArrayList<Observation[]>(2);
+				for(CoffeeTreeNode node: currentSplit) {
+					splitObservations.add(node.getObservations());
+				}
+				double currentScore = metric.calculateScore(splitObservations, CoffeeTree.classificationList);
 				if (currentScore < bestScore) {
 					bestAttribute = attribute;
 					bestScore = currentScore;
@@ -265,8 +296,9 @@ public class CoffeeTree {
 			attributeList.remove(bestAttribute);
 			currentNode.setImpurity(bestScore);
 			//Recursively train children
-			bestSplit[0] = bestSplit[0].train(attributeList, depth + 1, maxDepth, minObservations, deltaGain);
-			bestSplit[1] = bestSplit[1].train(attributeList, depth + 1, maxDepth, minObservations, deltaGain);
+			for(int i = 0; i < bestSplit.length; i++) {
+				bestSplit[i] = bestSplit[i].train(attributeList, depth + 1, binarySplit, maxDepth, minObservations, deltaGain);
+			}
 			currentNode.setChildren(bestSplit);
 			System.out.println(bestScore);
 			return currentNode;
@@ -276,28 +308,39 @@ public class CoffeeTree {
 		/**
 		 * Recursively descend through the tree using attributes until a terminal node is reached
 		 * @param observation The Observation to be classified using a trained tree
+		 * @param binarySplit Whether tree was trained in a binary fashion
 		 */
-		public void predict(Observation observation) {
+		public void predict(Observation observation, boolean binarySplit) {
 			CoffeeTreeNode currentNode = this;
 			// Base case: a leaf is reached
 			if (this instanceof TerminalCoffeeTreeNode) {
 				observation.setClassification(((TerminalCoffeeTreeNode) currentNode).getClassification());
 			}
 			else {
-				String attribute = currentNode.getAttribute();
+				Attribute attribute = currentNode.getAttribute();
 				boolean contains = false;
-				for(String a: observation.getAttributes()) {
+				boolean softContains = false;
+				for(Attribute a: observation.getAttributes()) {
 					if (attribute.equals(a)) {
 						contains = true;
+						break;
+					} else if (!binarySplit && attribute.softEquals(a)) {
+						softContains = true;
 						break;
 					}
 				}
 				if (contains) {
 					// Left child is contains = true from split
-					currentNode.getChildren()[0].predict(observation);
+					currentNode.getChildren()[0].predict(observation, binarySplit);
+				} else if (binarySplit) {
+					// Right child is contains = false from split
+					currentNode.getChildren()[1].predict(observation, binarySplit);
+				} else if (softContains){
+					// Middle child is softContains = true from split
+					currentNode.getChildren()[1].predict(observation, binarySplit);
 				} else {
 					// Right child is contains = false from split
-					currentNode.getChildren()[1].predict(observation);
+					currentNode.getChildren()[2].predict(observation, binarySplit);
 				}
 			}
 			
@@ -321,11 +364,11 @@ public class CoffeeTree {
 			this.children = children;
 		}
 		
-		public String getAttribute() {
+		public Attribute getAttribute() {
 			return attribute;
 		}
 
-		public void setAttribute(String attribute) {
+		public void setAttribute(Attribute attribute) {
 			this.attribute = attribute;
 		}
 
@@ -345,8 +388,8 @@ public class CoffeeTree {
 				boolean childrenEqual = false;
 				boolean observationsEqual = true;
 				CoffeeTreeNode other = (CoffeeTreeNode) o;
-				String attribute = this.getAttribute();
-				String otherAttribute = other.getAttribute();
+				Attribute attribute = this.getAttribute();
+				Attribute otherAttribute = other.getAttribute();
 				CoffeeTreeNode[] children = this.getChildren();
 				CoffeeTreeNode[] otherChildren = other.getChildren();
 				Observation[] observations = this.getObservations();
@@ -391,7 +434,7 @@ public class CoffeeTree {
 		 */
 		private String classification;
 		
-		public TerminalCoffeeTreeNode(CoffeeTreeNode node, ArrayList<String> attributeList) {
+		public TerminalCoffeeTreeNode(CoffeeTreeNode node, ArrayList<Attribute> attributeList) {
 			super(new ArrayList<Observation>(Arrays.asList(node.getObservations())));
 						
 			String classification = null;

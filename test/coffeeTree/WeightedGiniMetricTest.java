@@ -2,6 +2,9 @@ package coffeeTree;
 
 import static org.junit.Assert.*;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
@@ -16,8 +19,8 @@ public class WeightedGiniMetricTest {
 
 	@BeforeClass
 	public static void setUpBeforeClass() throws Exception {
-		class0Obs = new Observation(new String[]{"useless"}, "0");
-		class1Obs = new Observation(new String[]{"useless"}, "1");
+		class0Obs = new Observation(new ArrayList<Attribute>(Arrays.asList(new Attribute[] {new Attribute("useless")})), "0");
+		class1Obs = new Observation(new ArrayList<Attribute>(Arrays.asList(new Attribute[] {new Attribute("useless")})), "1");
 	}
 
 	@Before
@@ -30,11 +33,13 @@ public class WeightedGiniMetricTest {
 
 	@Test
 	public void testCalculateScore() {
-		String[] classes = {"0", "1"};
-		Observation[][] worstCase = { {class0Obs, class1Obs}, {class0Obs, class1Obs} };
-		Observation[][] bestCase = { {class0Obs, class0Obs}, {class1Obs, class1Obs} };
-		Observation[][] weightedBestCase = { {class0Obs, class0Obs, class0Obs, class0Obs, class0Obs, class1Obs}, {class0Obs, class0Obs, class1Obs, class1Obs, class1Obs, class1Obs} };
-		Observation[][] multiWaySplit = { {class0Obs, class1Obs, class1Obs, class1Obs}, {class0Obs, class0Obs, class0Obs, class0Obs, class0Obs, class0Obs, class0Obs, class0Obs}, {class0Obs, class1Obs, class1Obs, class1Obs, class1Obs, class1Obs, class1Obs, class1Obs} };
+		ArrayList<String> classes = new ArrayList<String>();
+		classes.add("0");
+		classes.add("1");
+		ArrayList<Observation[]> worstCase = new ArrayList<Observation[]>(Arrays.asList(new Observation[] {class0Obs, class1Obs}, new Observation[] {class0Obs, class1Obs}));
+		ArrayList<Observation[]> bestCase = new ArrayList<Observation[]>(Arrays.asList(new Observation[] {class0Obs, class0Obs}, new Observation[] {class1Obs, class1Obs}));
+		ArrayList<Observation[]> weightedBestCase = new ArrayList<Observation[]>(Arrays.asList(new Observation[] {class0Obs, class0Obs, class0Obs, class0Obs, class0Obs, class1Obs}, new Observation[] {class0Obs, class0Obs, class1Obs, class1Obs, class1Obs, class1Obs}));
+		ArrayList<Observation[]> multiWaySplit = new ArrayList<Observation[]>(Arrays.asList(new Observation[] {class0Obs, class1Obs, class1Obs, class1Obs}, new Observation[] {class0Obs, class0Obs, class0Obs, class0Obs, class0Obs, class0Obs, class0Obs, class0Obs}, new Observation[] {class0Obs, class1Obs, class1Obs, class1Obs, class1Obs, class1Obs, class1Obs, class1Obs}));
 		
 		assertEquals(0.0, binaryGiniMetric.calculateScore(bestCase, classes), 0.0001);
 		assertEquals(0.5, binaryGiniMetric.calculateScore(worstCase, classes), 0.0001);

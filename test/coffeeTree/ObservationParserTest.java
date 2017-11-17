@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 import org.junit.After;
 import org.junit.Before;
@@ -30,19 +31,25 @@ public class ObservationParserTest {
 	@Test
 	public void testParseString() {
 		String unclassifiedObservationString = "hasCountryOfOrigin:Guatemala,hasRoast:Light";
+		ArrayList<Attribute> unclassifiedAttributeList = new ArrayList<Attribute>();
+		unclassifiedAttributeList.add(new Attribute("hasCountryOfOrigin","Guatemala"));
+		unclassifiedAttributeList.add(new Attribute("hasRoast","Light"));
 		String classifiedObservationString = "Bitter,hasCountryOfOrigin:Indonesia,hasRoast:Dark";
+		ArrayList<Attribute> classifiedAttributeList = new ArrayList<Attribute>();
+		classifiedAttributeList.add(new Attribute("hasCountryOfOrigin","Indonesia"));
+		classifiedAttributeList.add(new Attribute("hasRoast","Dark"));
 		String classString = classifiedObservationString.split(",")[0];
 		
 		Observation unclassifiedObservation = parser.parseString(unclassifiedObservationString, false);
 		assertNull(unclassifiedObservation.getClassification());
 		//TODO change this when Attributes class is implemented
-		assertEquals(unclassifiedObservation.getAttributes()[0], unclassifiedObservationString.split(",")[0]);
+		assertEquals(unclassifiedObservation.getAttributes(), unclassifiedAttributeList);
 		
 		Observation classifiedObservation = parser.parseString(classifiedObservationString, true);
 		assertNotNull(classifiedObservation.getClassification());
 		assertEquals(classString, classifiedObservation.getClassification());
 		//TODO change this when Attributes class is implemented
-		assertEquals(classifiedObservation.getAttributes()[0], classifiedObservationString.split(",")[1]);
+		assertEquals(classifiedObservation.getAttributes(), classifiedAttributeList);
 
 		
 	}
@@ -53,11 +60,11 @@ public class ObservationParserTest {
 		ArrayList<Observation> classifiedObservations = null;
 		ArrayList<Observation> unclassifiedObservations = null;
 		ArrayList<Observation> testClassifiedObs = new ArrayList<Observation>();
-		testClassifiedObs.add(new Observation(new String[] {"hasCorporateEntity:Guardian", "hasCountry:UK", "hasCompanyType:Media"}, "disclosure"));
-		testClassifiedObs.add(new Observation(new String[] {"hasGovernmentEntity:", "hasCountry:USA"}, "increased accessibility"));
+		testClassifiedObs.add(new Observation(new ArrayList<Attribute>(Arrays.asList(new Attribute[] {new Attribute("hasCorporateEntity", "Guardian"), new Attribute("hasCountry", "UK"), new Attribute("hasCompanyType", "Media")})), "disclosure"));
+		testClassifiedObs.add(new Observation(new ArrayList<Attribute>(Arrays.asList(new Attribute[] {new Attribute("hasGovernmentEntity"), new Attribute("hasCountry", "USA")})), "increased accessibility"));
 		ArrayList<Observation> testUnclassifiedObs = new ArrayList<Observation>();
-		testUnclassifiedObs.add(new Observation(new String[] {"disclosure", "hasCorporateEntity:Guardian", "hasCountry:UK", "hasCompanyType:Media"}));
-		testUnclassifiedObs.add(new Observation(new String[] {"increased accessibility","hasGovernmentEntity:", "hasCountry:USA"}));
+		testUnclassifiedObs.add(new Observation(new ArrayList<Attribute>(Arrays.asList(new Attribute[] {new Attribute("disclosure"), new Attribute("hasCorporateEntity", "Guardian"), new Attribute("hasCountry", "UK"), new Attribute("hasCompanyType", "Media")}))));
+		testUnclassifiedObs.add(new Observation(new ArrayList<Attribute>(Arrays.asList(new Attribute[] {new Attribute("increased accessibility"), new Attribute("hasGovernmentEntity"), new Attribute("hasCountry", "USA")}))));
 
 		try {
 			classifiedObservations = parser.parseFile(classifiedFile.getAbsolutePath(), true);
